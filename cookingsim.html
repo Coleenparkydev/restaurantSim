@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Restaurant Tycoon – Enhanced Cooking Simulator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #fff8f0 0%, #ffeaa7 100%);
+      padding: 2rem;
+      text-align: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    #game-container {
+      max-width: 1000px;
+      margin: auto;
+      background: rgba(252, 236, 209, 0.95);
+      border: 3px solid #fdcb6e;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      color: #d63031;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .menu, .ingredients, .stations {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .item, .ingredient, .station {
+      background: linear-gradient(145deg, #ffda99, #ffd166);
+      padding: 12px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .item:hover, .ingredient:hover, .station:hover {
+      background: linear-gradient(145deg, #ffd166, #ffb347);
+      transform: translateY(-2px) scale(1.05);
+      border-color: #ff7675;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+
+    .item:active, .ingredient:active, .station:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    #money, #order-box {
+      font-size: 1.4rem;
+      margin: 15px 0;
+      font-weight: bold;
+    }
+
+    #money {
+      color: #00b894;
+      background: rgba(0, 184, 148, 0.1);
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #00b894;
+    }
+
+    #order-box {
+      background: rgba(116, 185, 255, 0.1);
+      border: 2px dashed #74b9ff;
+      padding: 15px;
+      border-radius: 10px;
+      color: #2d3436;
+      min-height: 20px;
+    }
+
+    #prep-status {
+      background: rgba(255, 251, 230, 0.9);
+      border: 2px solid #fdcb6e;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      margin: 20px 0;
+      color: #2d3436;
+    }
+
+    .station {
+      background: linear-gradient(145deg, #ffc107, #ff9f43);
+      min-width: 120px;
+    }
+
+    .ready-to-serve {
+      background: linear-gradient(145deg, #00b894, #55a3ff) !important;
+      color: white;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(0, 184, 148, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0); }
+    }
+
+    .section-title {
+      color: #2d3436;
+      margin: 25px 0 15px 0;
+      font-size: 1.3rem;
+    }
+
+    .instructions {
+      background: rgba(255, 255, 255, 0.8);
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      font-size: 0.9rem;
+      color: #636e72;
+      border-left: 4px solid #74b9ff;
+    }
+
+    .clickable-ingredient {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 2px 4px;
+      border-radius: 3px;
+      display: inline-block;
+      margin: 0 2px;
+    }
+
+    .clickable-ingredient:hover {
+      text-decoration: line-through;
+      background-color: rgba(231, 76, 60, 0.2);
+      color: #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>👨‍🍳 Restaurant Tycoon – Master Chef Edition</h1>
+    
+    <div class="instructions">
+      📋 <strong>How to Play:</strong> Take customer orders, gather ingredients, cook items at the right stations, then serve completed dishes to earn money!
+    </div>
+    
+    <div id="money">💰 Money: $0</div>
+    <div id="order-box">Waiting for customer orders...</div>
+
+    <div class="menu">
+      <div class="item" onclick="attemptServe('Pizza')">🍕 Serve Pizza ($6)</div>
+      <div class="item" onclick="attemptServe('Hamburger')">🍔 Serve Hamburger ($8)</div>
+      <div class="item" onclick="attemptServe('Fish & Chips')">🐟 Serve Fish & Chips ($8)</div>
+    </div>
+
+    <div id="prep-status">
+      <strong>Kitchen Status:</strong><br>
+      Raw Ingredients: None | Cooked Items: None
+    </div>
+
+    <h3 class="section-title">🧊 Raw Ingredients</h3>
+    <div class="ingredients">
+      <div class="ingredient" onclick="addIngredient('Dough')">🥖 Dough</div>
+      <div class="ingredient" onclick="addIngredient('Cheese')">🧀 Cheese</div>
+      <div class="ingredient" onclick="addIngredient('Sauce')">🍅 Sauce</div>
+      <div class="ingredient" onclick="addIngredient('Bun')">🍞 Bun</div>
+      <div class="ingredient" onclick="addIngredient('Patty')">🥩 Raw Patty</div>
+      <div class="ingredient" onclick="addIngredient('Lettuce')">🥬 Lettuce</div>
+      <div class="ingredient" onclick="addIngredient('Tomato')">🍅 Tomato</div>
+      <div class="ingredient" onclick="addIngredient('Fish')">🐟 Raw Fish</div>
+      <div class="ingredient" onclick="addIngredient('Potato')">🥔 Raw Potato</div>
+    </div>
+
+    <h3 class="section-title">🔥 Cooking Stations</h3>
+    <div class="stations">
+      <div class="station" onclick="cook('Oven')">🔥 Oven<br><small>(Pizza)</small></div>
+      <div class="station" onclick="cook('Fryer')">🍟 Deep Fryer<br><small>(Fish & Chips)</small></div>
+      <div class="station" onclick="cook('Pan')">🍳 Frying Pan<br><small>(Hamburger)</small></div>
+    </div>
+
+    <div class="instructions">
+      <strong>🍔 Hamburger Tips:</strong> First cook the patty alone in the pan, then add all other ingredients and cook again to assemble!<br>
+      <strong>🍕 Pizza:</strong> Add dough, cheese, and sauce, then bake in oven.<br>
+      <strong>🐟 Fish & Chips:</strong> Add raw fish and potato, then fry together.
+    </div>
+  </div>
+
+  <script>
+    // Sound effects using Web Audio API
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playSound(frequency, duration, type = 'sine', volume = 0.3) {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+      oscillator.type = type;
+      
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + duration);
+    }
+    
+    function playServeSound() {
+      // Success sound - ascending notes
+      playSound(523.25, 0.2); // C5
+      setTimeout(() => playSound(659.25, 0.2), 100); // E5
+      setTimeout(() => playSound(783.99, 0.3), 200); // G5
+    }
+    
+    function playButtonSound() {
+      // Simple click sound
+      playSound(800, 0.1, 'square', 0.2);
+    }
+
+    const recipes = {
+      'Pizza': {
+        ingredients: ['Dough', 'Cheese', 'Sauce'],
+        cooked: [],
+        station: 'Oven',
+        price: 6
+      },
+      'Hamburger': {
+        ingredients: ['Bun', 'Sauce', 'Cheese', 'Lettuce', 'Tomato'],
+        cooked: ['Cooked Patty'],
+        station: 'Pan',
+        price: 8
+      },
+      'Fish & Chips': {
+        ingredients: ['Fish', 'Potato'],
+        cooked: [],
+        station: 'Fryer',
+        price: 8
+      }
+    };
+
+    let money = 0;
+    let currentOrder = null;
+    let prepItems = [];
+    let cookedItems = [];
+    let orderCount = 0;
+
+    function getRandomDish() {
+      const keys = Object.keys(recipes);
+      return keys[Math.floor(Math.random() * keys.length)];
+    }
+
+    function createOrder() {
+      if (!currentOrder) {
+        currentOrder = getRandomDish();
+        orderCount++;
+        document.getElementById("order-box").innerHTML = 
+          `🧾 <strong>Order #${orderCount}: ${currentOrder}</strong><br>
+          <small>Required: ${getRecipeDescription(currentOrder)}</small>`;
+        
+        // Update serve buttons to highlight the correct one
+        updateServeButtons();
+      }
+      // Random interval between 4-8 seconds for new orders
+      setTimeout(createOrder, Math.random() * 4000 + 4000);
+    }
+
+    function getRecipeDescription(dish) {
+      const recipe = recipes[dish];
+      let desc = '';
+      if (recipe.ingredients.length > 0) {
+        desc += recipe.ingredients.join(', ');
+      }
+      if (recipe.cooked.length > 0) {
+        if (desc) desc += ' + ';
+        desc += recipe.cooked.join(', ');
+      }
+      return desc;
+    }
+
+    function updateServeButtons() {
+      const buttons = document.querySelectorAll('.item');
+      buttons.forEach(button => {
+        button.classList.remove('ready-to-serve');
+        if (currentOrder && button.textContent.includes(currentOrder)) {
+          if (cookedItems.includes(currentOrder)) {
+            button.classList.add('ready-to-serve');
+          }
+        }
+      });
+    }
+
+    function addIngredient(item) {
+      playButtonSound(); // Add sound effect
+      prepItems.push(item);
+      updatePrepStatus();
+      
+      // Visual feedback
+      const ingredientButtons = document.querySelectorAll('.ingredient');
+      ingredientButtons.forEach(btn => {
+        if (btn.textContent.includes(item)) {
+          btn.style.transform = 'scale(0.9)';
+          setTimeout(() => btn.style.transform = '', 150);
+        }
+      });
+    }
+
+    function cook(station) {
+      playButtonSound(); // Add sound effect
+      if (!currentOrder) {
+        showMessage("❌ No active order! Wait for a customer.", "error");
+        return;
+      }
+
+      const recipe = recipes[currentOrder];
+
+      // Special case: Cook patty alone for hamburger
+      if (station === 'Pan' && prepItems.includes('Patty') && currentOrder === 'Hamburger') {
+        const pattyIndex = prepItems.indexOf('Patty');
+        prepItems.splice(pattyIndex, 1);
+        cookedItems.push('Cooked Patty');
+        updatePrepStatus();
+        showMessage("✅ Patty cooked perfectly!", "success");
+        return;
+      }
+
+      // Check if we can complete the dish
+      const hasAllIngredients = recipe.ingredients.every(ingredient => 
+        prepItems.includes(ingredient)
+      );
+      const hasAllCooked = recipe.cooked.every(cookedItem => 
+        cookedItems.includes(cookedItem)
+      );
+      const correctStation = recipe.station === station;
+
+      if (hasAllIngredients && hasAllCooked && correctStation) {
+        // Remove used ingredients
+        recipe.ingredients.forEach(ingredient => {
+          const index = prepItems.indexOf(ingredient);
+          if (index !== -1) prepItems.splice(index, 1);
+        });
+
+        // Remove used cooked items
+        recipe.cooked.forEach(cookedItem => {
+          const index = cookedItems.indexOf(cookedItem);
+          if (index !== -1) cookedItems.splice(index, 1);
+        });
+
+        // Add completed dish
+        cookedItems.push(currentOrder);
+        updatePrepStatus();
+        updateServeButtons();
+        showMessage(`🎉 ${currentOrder} is ready to serve!`, "success");
+      } else {
+        let errorMsg = "❌ Cannot cook: ";
+        if (!correctStation) {
+          errorMsg += `Wrong station! Use ${recipe.station}.`;
+        } else if (!hasAllIngredients) {
+          const missing = recipe.ingredients.filter(ing => !prepItems.includes(ing));
+          errorMsg += `Missing ingredients: ${missing.join(', ')}.`;
+        } else if (!hasAllCooked) {
+          const missing = recipe.cooked.filter(cooked => !cookedItems.includes(cooked));
+          errorMsg += `Missing cooked items: ${missing.join(', ')}.`;
+        }
+        showMessage(errorMsg, "error");
+      }
+    }
+
+    function attemptServe(dish) {
+      if (dish !== currentOrder) {
+        playButtonSound(); // Regular button sound for wrong order
+        showMessage("❌ That's not the current order!", "error");
+        return;
+      }
+
+      if (cookedItems.includes(dish)) {
+        playServeSound(); // Special serve sound for successful serve
+        const dishIndex = cookedItems.indexOf(dish);
+        cookedItems.splice(dishIndex, 1);
+        money += recipes[dish].price;
+        
+        document.getElementById("money").textContent = "💰 Money: $" + money;
+        showMessage(`✅ Served ${dish}! Earned ${recipes[dish].price}`, "success");
+        
+        currentOrder = null;
+        document.getElementById("order-box").textContent = "Waiting for next customer...";
+        updatePrepStatus();
+        updateServeButtons();
+      } else {
+        playButtonSound(); // Regular button sound for dish not ready
+        showMessage("❌ Dish not ready! Cook it first.", "error");
+      }
+    }
+
+    function showMessage(message, type) {
+      const orderBox = document.getElementById("order-box");
+      const originalContent = orderBox.innerHTML;
+      
+      orderBox.style.backgroundColor = type === "success" ? "rgba(0, 184, 148, 0.2)" : "rgba(231, 76, 60, 0.2)";
+      orderBox.style.borderColor = type === "success" ? "#00b894" : "#e74c3c";
+      orderBox.innerHTML = message;
+      
+      setTimeout(() => {
+        orderBox.style.backgroundColor = "";
+        orderBox.style.borderColor = "#74b9ff";
+        if (currentOrder) {
+          orderBox.innerHTML = 
+            `🧾 <strong>Order #${orderCount}: ${currentOrder}</strong><br>
+            <small>Required: ${getRecipeDescription(currentOrder)}</small>`;
+        } else {
+          orderBox.textContent = "Waiting for next customer...";
+        }
+      }, 2000);
+    }
+
+    function removeIngredient(item) {
+      playButtonSound(); // Add sound effect
+      const index = prepItems.indexOf(item);
+      if (index !== -1) {
+        prepItems.splice(index, 1);
+        updatePrepStatus();
+        showMessage(`🗑️ Removed ${item} from prep area`, "success");
+      }
+    }
+
+    function updatePrepStatus() {
+      const prep = prepItems.length ? prepItems.join(', ') : 'None';
+      const cooked = cookedItems.length ? cookedItems.join(', ') : 'None';
+      
+      // Create clickable ingredients for raw ingredients
+      let prepDisplay = 'None';
+      if (prepItems.length > 0) {
+        prepDisplay = prepItems.map(ingredient => 
+          `<span class="clickable-ingredient" onclick="removeIngredient('${ingredient}')">${ingredient}</span>`
+        ).join(', ');
+      }
+      
+      document.getElementById("prep-status").innerHTML = 
+        `<strong>Kitchen Status:</strong><br>
+         Raw Ingredients: <span style="color: #d63031">${prepDisplay}</span> | 
+         Cooked Items: <span style="color: #00b894">${cooked}</span>`;
+      
+      updateServeButtons();
+    }
+
+    // Start the game
+    showMessage("🎮 Welcome to Restaurant Tycoon! Your first customer is coming...", "success");
+    setTimeout(createOrder, 2000);
+  </script>
+</body>
+</html>
